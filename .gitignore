@@ -42,3 +42,6 @@ next-env.d.ts
 
 # idea
 .idea/
+
+# claude code (machine-local permissions/overrides)
+.claude/settings.local.json
