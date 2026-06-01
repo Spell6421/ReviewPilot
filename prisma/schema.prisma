@@ -1,0 +1,175 @@
+// Prisma schema for ReviewPilot
+// Docs: https://pris.ly/d/prisma-schema
+//
+// Notes:
+// - We use the Supabase Postgres "transaction pooler" connection string as DATABASE_URL
+//   (port 6543, pgbouncer=true) for the runtime client, and the "session pooler" / direct
+//   connection as DIRECT_URL for migrations.
+// - The `User` model is intentionally NOT defined here. Supabase Auth owns the `auth.users`
+//   table. Our app rows reference it by storing the auth user id as a UUID `ownerId`.
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = []
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum BillingPlan {
+  starter
+  pro
+  scale
+}
+
+// One local business account. Owned by exactly one Supabase auth user (for the MVP).
+model Business {
+  id               String   @id @default(uuid()) @db.Uuid
+  // References auth.users.id in Supabase. We don't model a Prisma relation across schemas;
+  // we just store the UUID and scope every query by this value.
+  ownerId          String   @map("owner_id") @db.Uuid
+  name             String
+  phone            String?
+  googleReviewLink String?  @map("google_review_link")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  // Billing. Stripe IDs are nullable until a real subscription is created; for
+  // now the plan is just a label and the quota is enforced in app code.
+  plan                 BillingPlan @default(starter)
+  messageQuotaLimit    Int         @default(250) @map("message_quota_limit")
+  currentPeriodStart   DateTime    @default(now()) @map("current_period_start") @db.Timestamptz(6)
+  stripeCustomerId     String?     @map("stripe_customer_id")
+  stripeSubscriptionId String?     @map("stripe_subscription_id")
+
+  customers        Customer[]
+  messages         Message[]
+  messageTemplates MessageTemplate[]
+  missedLeads      MissedLead[]
+
+  @@index([ownerId])
+  @@map("businesses")
+}
+
+// A customer or lead belonging to a business.
+model Customer {
+  id                 String    @id @default(uuid()) @db.Uuid
+  businessId         String    @map("business_id") @db.Uuid
+  name               String
+  phone              String?
+  email              String?
+  lastAppointmentAt  DateTime? @map("last_appointment_at") @db.Timestamptz(6)
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  // SMS opt-out. Set when the customer texts STOP (or similar). We never send
+  // SMS to an opted-out customer; START/UNSTOP clears it.
+  smsOptedOut        Boolean   @default(false) @map("sms_opted_out")
+  smsOptedOutAt      DateTime? @map("sms_opted_out_at") @db.Timestamptz(6)
+
+  business Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  messages Message[]
+
+  @@index([businessId])
+  @@map("customers")
+}
+
+enum MessageTemplateType {
+  review_request
+  review_follow_up
+  rebooking_reminder
+  missed_call_recovery
+  win_back
+}
+
+// Reusable message bodies. Each business can edit its own copies.
+model MessageTemplate {
+  id         String              @id @default(uuid()) @db.Uuid
+  businessId String              @map("business_id") @db.Uuid
+  type       MessageTemplateType
+  body       String
+  createdAt  DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, type])
+  @@index([businessId])
+  @@map("message_templates")
+}
+
+enum MessageChannel {
+  sms
+  email
+}
+
+enum MessageType {
+  review_request
+  review_follow_up
+  rebooking_reminder
+  missed_call_recovery
+  win_back
+}
+
+enum MessageStatus {
+  draft
+  queued
+  sent
+  failed
+  replied
+}
+
+// Every outbound (and eventually inbound) message attempt.
+//
+// A message is linked to either a Customer or a MissedLead (or neither, e.g.
+// inbound messages we haven't matched yet). Both sides are nullable + SetNull
+// on delete so deleting the customer/lead doesn't lose the message log.
+model Message {
+  id            String         @id @default(uuid()) @db.Uuid
+  businessId    String         @map("business_id") @db.Uuid
+  customerId    String?        @map("customer_id") @db.Uuid
+  missedLeadId  String?        @map("missed_lead_id") @db.Uuid
+  channel       MessageChannel
+  type          MessageType
+  body          String
+  status        MessageStatus  @default(draft)
+  sentAt        DateTime?      @map("sent_at") @db.Timestamptz(6)
+  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  // Twilio message SID. Stored on outbound sends so the status webhook can map
+  // delivery callbacks back to this row, and set on inbound replies for traceability.
+  providerSid   String?        @map("provider_sid")
+
+  business   Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  customer   Customer?   @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  missedLead MissedLead? @relation(fields: [missedLeadId], references: [id], onDelete: SetNull)
+
+  @@index([businessId])
+  @@index([customerId])
+  @@index([missedLeadId])
+  @@index([businessId, createdAt])
+  @@index([providerSid])
+  @@map("messages")
+}
+
+enum MissedLeadStatus {
+  new
+  contacted
+  booked
+  lost
+}
+
+// Leads entered manually after a missed call.
+model MissedLead {
+  id         String           @id @default(uuid()) @db.Uuid
+  businessId String           @map("business_id") @db.Uuid
+  name       String
+  phone      String?
+  notes      String?
+  status     MissedLeadStatus @default(new)
+  createdAt  DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  business Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  messages Message[]
+
+  @@index([businessId])
+  @@map("missed_leads")
+}
