@@ -70,27 +70,27 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| APPT-01 | TBD | Pending |
-| APPT-02 | TBD | Pending |
-| APPT-03 | TBD | Pending |
-| REBK-01 | TBD | Pending |
-| REBK-02 | TBD | Pending |
-| REBK-03 | TBD | Pending |
-| REBK-04 | TBD | Pending |
-| WINB-01 | TBD | Pending |
-| WINB-02 | TBD | Pending |
-| WINB-03 | TBD | Pending |
-| WINB-04 | TBD | Pending |
-| ENGN-01 | TBD | Pending |
-| ENGN-02 | TBD | Pending |
-| ENGN-03 | TBD | Pending |
-| ENGN-04 | TBD | Pending |
+| APPT-01 | Phase 1 | Pending |
+| APPT-02 | Phase 1 | Pending |
+| APPT-03 | Phase 1 | Pending |
+| REBK-01 | Phase 2 | Pending |
+| REBK-02 | Phase 2 | Pending |
+| REBK-03 | Phase 2 | Pending |
+| REBK-04 | Phase 2 | Pending |
+| WINB-01 | Phase 3 | Pending |
+| WINB-02 | Phase 3 | Pending |
+| WINB-03 | Phase 3 | Pending |
+| WINB-04 | Phase 3 | Pending |
+| ENGN-01 | Phase 2 | Pending |
+| ENGN-02 | Phase 2 | Pending |
+| ENGN-03 | Phase 2 | Pending |
+| ENGN-04 | Phase 2 | Pending |
 
 **Coverage:**
 - v1 requirements: 15 total
-- Mapped to phases: 0 (roadmap pending)
-- Unmapped: 15 ⚠️
+- Mapped to phases: 15 ✓
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-06-03*
-*Last updated: 2026-06-03 after initial definition*
+*Last updated: 2026-06-03 after roadmap creation (traceability mapped)*
