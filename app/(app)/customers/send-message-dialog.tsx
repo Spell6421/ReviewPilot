@@ -187,6 +187,9 @@ export function SendMessageDialog({
               <FieldDescription>
                 Edits here only affect this one message. Change the template in
                 Settings to update the default.
+                {body.includes("{{feedbackLink}}")
+                  ? " {{feedbackLink}} is replaced with the customer's private rating link when you send."
+                  : ""}
               </FieldDescription>
             </Field>
 

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   ChevronsUpDown,
   CreditCard,
+  Inbox,
   LayoutDashboard,
   LogOut,
   MessageSquare,
@@ -43,6 +44,7 @@ const workspaceNav = [
   { title: "Customers", href: "/customers", icon: Users },
   { title: "Missed leads", href: "/missed-leads", icon: PhoneMissed },
   { title: "Messages", href: "/messages", icon: MessageSquare },
+  { title: "Feedback", href: "/feedback", icon: Inbox },
 ];
 
 const accountNav = [

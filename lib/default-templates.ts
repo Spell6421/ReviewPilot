@@ -6,16 +6,23 @@ import type {
 
 export const DEFAULT_TEMPLATES: { type: MessageTemplateType; body: string }[] = [
   {
+    // Feedback-gated: links to the rating page, not straight to Google. A high
+    // rating leads the customer to the Google review; a low one routes private
+    // feedback to the owner. {{feedbackLink}} is minted per send.
     type: "review_request",
-    body: "Thanks for visiting {{businessName}} — would you mind leaving us a quick Google review? {{reviewLink}}",
+    body: "Hi {{customerName}}, thanks for visiting {{businessName}}! How was your visit? {{feedbackLink}}",
   },
   {
     type: "review_follow_up",
-    body: "Just checking in — if you had a good experience with {{businessName}}, we'd really appreciate a quick review: {{reviewLink}}",
+    body: "Hi {{customerName}}, just following up from {{businessName}} — we'd love to hear how your visit went: {{feedbackLink}}",
   },
   {
     type: "missed_call_recovery",
     body: "Sorry we missed your call at {{businessName}}. Would you like to book an appointment?",
+  },
+  {
+    type: "missed_call_follow_up",
+    body: "Hi {{customerName}}, following up from {{businessName}} — still happy to get you booked whenever works for you. Just reply here.",
   },
   {
     type: "rebooking_reminder",
@@ -40,6 +47,7 @@ export const messageTypeLabels: Record<string, string> = {
   review_follow_up: "Review follow-up",
   rebooking_reminder: "Rebooking reminder",
   missed_call_recovery: "Missed-call recovery",
+  missed_call_follow_up: "Missed-call follow-up",
   win_back: "Win-back",
 };
 
@@ -50,6 +58,7 @@ export const messageEmailSubjects: Record<string, string> = {
   review_follow_up: "A quick favor",
   rebooking_reminder: "Ready for your next visit?",
   missed_call_recovery: "Sorry we missed your call",
+  missed_call_follow_up: "Following up on your call",
   win_back: "We miss you!",
 };
 

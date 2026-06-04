@@ -37,8 +37,10 @@ export function TemplatesForm({ templates }: TemplatesFormProps) {
       <CardHeader>
         <CardTitle>Message templates</CardTitle>
         <CardDescription>
-          Use {"{{businessName}}"}, {"{{reviewLink}}"}, and{" "}
-          {"{{customerName}}"} as placeholders.
+          Use {"{{businessName}}"}, {"{{customerName}}"}, and {"{{reviewLink}}"}{" "}
+          as placeholders. In review messages, {"{{feedbackLink}}"} is replaced at
+          send time with the customer&apos;s private rating link (they rate first,
+          then happy customers are sent to your Google review).
         </CardDescription>
       </CardHeader>
       <form action={formAction}>
