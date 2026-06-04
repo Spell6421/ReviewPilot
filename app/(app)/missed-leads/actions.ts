@@ -6,7 +6,7 @@ import { MissedLeadStatus } from "@prisma/client";
 import { requireCurrentBusiness } from "@/lib/current-business";
 import { normalizePhone } from "@/lib/phone";
 import { prisma } from "@/lib/prisma";
-import { sendSms } from "@/lib/twilio";
+import { sendMessage } from "@/lib/send-message";
 
 export type MissedLeadFormState = {
   error?: string;
@@ -119,36 +119,34 @@ export async function sendRecoveryMessageAction(
     return { error: "This lead has no phone number on file." };
   }
 
-  const [message] = await prisma.$transaction([
-    prisma.message.create({
-      data: {
-        businessId: business.id,
-        customerId: null,
-        missedLeadId: lead.id,
-        channel: "sms",
-        type: "missed_call_recovery",
-        body,
-        status: "queued",
-      },
-    }),
-    prisma.missedLead.update({
+  // Advance new → contacted: the owner attempted outreach regardless of how the
+  // send below turns out.
+  if (lead.status === "new") {
+    await prisma.missedLead.update({
       where: { id: lead.id },
-      data: lead.status === "new" ? { status: "contacted" } : {},
-    }),
-  ]);
+      data: { status: "contacted" },
+    });
+  }
 
-  const result = await sendSms(normalizePhone(lead.phone) ?? lead.phone, body);
-  await prisma.message.update({
-    where: { id: message.id },
-    data: result.ok
-      ? { status: "sent", sentAt: new Date(), providerSid: result.sid }
-      : { status: "failed" },
+  // Same shared send path the rest of the app uses (records, sends, flips).
+  const result = await sendMessage({
+    businessId: business.id,
+    businessName: business.name,
+    channel: "sms",
+    type: "missed_call_recovery",
+    body,
+    missedLead: lead,
   });
 
   revalidatePath("/missed-leads");
   revalidatePath("/messages");
   revalidatePath("/dashboard");
 
-  if (!result.ok) return { error: `Logged, but the SMS failed to send: ${result.error}` };
+  if (result.status === "skipped") {
+    return { error: "This lead has no phone number on file." };
+  }
+  if (result.status === "failed") {
+    return { error: `Logged, but the SMS failed to send: ${result.error}` };
+  }
   return { successAt: Date.now() };
 }

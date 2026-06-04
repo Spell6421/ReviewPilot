@@ -4,11 +4,8 @@ import { revalidatePath } from "next/cache";
 import { MessageChannel, MessageType } from "@prisma/client";
 
 import { requireCurrentBusiness } from "@/lib/current-business";
-import { messageEmailSubjects } from "@/lib/default-templates";
-import { normalizePhone } from "@/lib/phone";
 import { prisma } from "@/lib/prisma";
-import { sendEmail } from "@/lib/resend";
-import { sendSms } from "@/lib/twilio";
+import { sendMessage, type SendSkipReason } from "@/lib/send-message";
 
 export type SendMessageFormState = {
   error?: string;
@@ -20,10 +17,26 @@ const VALID_TYPES = new Set<string>([
   "review_follow_up",
   "rebooking_reminder",
   "missed_call_recovery",
+  "missed_call_follow_up",
   "win_back",
 ]);
 
 const VALID_CHANNELS = new Set<string>(["sms", "email"]);
+
+// Map a core "skipped" reason onto the customer-facing copy this form has always
+// shown. A skip means no Message row was created (same as the old pre-send guards).
+function skipReasonMessage(reason: SendSkipReason): string {
+  switch (reason) {
+    case "opted_out":
+      return "This customer opted out of SMS (they texted STOP). They can text START to opt back in.";
+    case "no_phone":
+      return "This customer has no phone number on file.";
+    case "no_email":
+      return "This customer has no email address on file.";
+    case "no_recipient":
+      return "This customer has no contact info on file.";
+  }
+}
 
 export async function sendMessageAction(
   _prev: SendMessageFormState,
@@ -45,61 +58,26 @@ export async function sendMessageAction(
   });
   if (!customer) return { error: "Customer not found." };
 
-  if (channelRaw === "sms" && !customer.phone) {
-    return { error: "This customer has no phone number on file." };
-  }
-  if (channelRaw === "sms" && customer.smsOptedOut) {
-    return { error: "This customer opted out of SMS (they texted STOP). They can text START to opt back in." };
-  }
-  if (channelRaw === "email" && !customer.email) {
-    return { error: "This customer has no email address on file." };
-  }
-
-  // Record the attempt first so every send is logged regardless of outcome.
-  // Both channels start as `queued`, then flip to `sent` (storing the provider's
-  // id) or `failed` based on the send result below.
-  const message = await prisma.message.create({
-    data: {
-      businessId: business.id,
-      customerId: customer.id,
-      channel: channelRaw as MessageChannel,
-      type: typeRaw as MessageType,
-      body,
-      status: "queued",
-    },
+  // One shared send path: records the attempt, sends, flips sent/failed.
+  const result = await sendMessage({
+    businessId: business.id,
+    businessName: business.name,
+    channel: channelRaw as MessageChannel,
+    type: typeRaw as MessageType,
+    body,
+    customer,
   });
-
-  let sendError: string | undefined;
-  if (channelRaw === "sms") {
-    // Safety net for rows created before phone normalization existed.
-    const to = normalizePhone(customer.phone) ?? customer.phone!;
-    const result = await sendSms(to, body);
-    await prisma.message.update({
-      where: { id: message.id },
-      data: result.ok
-        ? { status: "sent", sentAt: new Date(), providerSid: result.sid }
-        : { status: "failed" },
-    });
-    if (!result.ok) sendError = result.error;
-  } else {
-    const subject = `${business.name} — ${messageEmailSubjects[typeRaw] ?? "A quick note"}`;
-    const result = await sendEmail(customer.email!, subject, body);
-    await prisma.message.update({
-      where: { id: message.id },
-      data: result.ok
-        ? { status: "sent", sentAt: new Date(), providerSid: result.id }
-        : { status: "failed" },
-    });
-    if (!result.ok) sendError = result.error;
-  }
 
   revalidatePath("/messages");
   revalidatePath("/dashboard");
   revalidatePath("/customers");
 
-  if (sendError) {
+  if (result.status === "skipped") {
+    return { error: skipReasonMessage(result.reason) };
+  }
+  if (result.status === "failed") {
     const label = channelRaw === "sms" ? "SMS" : "email";
-    return { error: `Logged, but the ${label} failed to send: ${sendError}` };
+    return { error: `Logged, but the ${label} failed to send: ${result.error}` };
   }
   return { successAt: Date.now() };
 }
