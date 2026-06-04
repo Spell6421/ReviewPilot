@@ -1,4 +1,4 @@
-// Prisma schema for ReviewPilot
+// Prisma schema for Backbooked (formerly ReviewPilot)
 // Docs: https://pris.ly/d/prisma-schema
 //
 // Notes:
@@ -48,6 +48,7 @@ model Business {
   messages         Message[]
   messageTemplates MessageTemplate[]
   missedLeads      MissedLead[]
+  feedback         Feedback[]
 
   @@index([ownerId])
   @@map("businesses")
@@ -55,20 +56,21 @@ model Business {
 
 // A customer or lead belonging to a business.
 model Customer {
-  id                 String    @id @default(uuid()) @db.Uuid
-  businessId         String    @map("business_id") @db.Uuid
-  name               String
-  phone              String?
-  email              String?
-  lastAppointmentAt  DateTime? @map("last_appointment_at") @db.Timestamptz(6)
-  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  id                String    @id @default(uuid()) @db.Uuid
+  businessId        String    @map("business_id") @db.Uuid
+  name              String
+  phone             String?
+  email             String?
+  lastAppointmentAt DateTime? @map("last_appointment_at") @db.Timestamptz(6)
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   // SMS opt-out. Set when the customer texts STOP (or similar). We never send
   // SMS to an opted-out customer; START/UNSTOP clears it.
-  smsOptedOut        Boolean   @default(false) @map("sms_opted_out")
-  smsOptedOutAt      DateTime? @map("sms_opted_out_at") @db.Timestamptz(6)
+  smsOptedOut       Boolean   @default(false) @map("sms_opted_out")
+  smsOptedOutAt     DateTime? @map("sms_opted_out_at") @db.Timestamptz(6)
 
-  business Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  business Business   @relation(fields: [businessId], references: [id], onDelete: Cascade)
   messages Message[]
+  feedback Feedback[]
 
   @@index([businessId])
   @@map("customers")
@@ -79,6 +81,7 @@ enum MessageTemplateType {
   review_follow_up
   rebooking_reminder
   missed_call_recovery
+  missed_call_follow_up
   win_back
 }
 
@@ -107,6 +110,7 @@ enum MessageType {
   review_follow_up
   rebooking_reminder
   missed_call_recovery
+  missed_call_follow_up
   win_back
 }
 
@@ -124,19 +128,19 @@ enum MessageStatus {
 // inbound messages we haven't matched yet). Both sides are nullable + SetNull
 // on delete so deleting the customer/lead doesn't lose the message log.
 model Message {
-  id            String         @id @default(uuid()) @db.Uuid
-  businessId    String         @map("business_id") @db.Uuid
-  customerId    String?        @map("customer_id") @db.Uuid
-  missedLeadId  String?        @map("missed_lead_id") @db.Uuid
-  channel       MessageChannel
-  type          MessageType
-  body          String
-  status        MessageStatus  @default(draft)
-  sentAt        DateTime?      @map("sent_at") @db.Timestamptz(6)
-  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  id           String         @id @default(uuid()) @db.Uuid
+  businessId   String         @map("business_id") @db.Uuid
+  customerId   String?        @map("customer_id") @db.Uuid
+  missedLeadId String?        @map("missed_lead_id") @db.Uuid
+  channel      MessageChannel
+  type         MessageType
+  body         String
+  status       MessageStatus  @default(draft)
+  sentAt       DateTime?      @map("sent_at") @db.Timestamptz(6)
+  createdAt    DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
   // Twilio message SID. Stored on outbound sends so the status webhook can map
   // delivery callbacks back to this row, and set on inbound replies for traceability.
-  providerSid   String?        @map("provider_sid")
+  providerSid  String?        @map("provider_sid")
 
   business   Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
   customer   Customer?   @relation(fields: [customerId], references: [id], onDelete: SetNull)
@@ -172,4 +176,45 @@ model MissedLead {
 
   @@index([businessId])
   @@map("missed_leads")
+}
+
+// A feedback request tied to a review_request send. Created (as `pending`, i.e.
+// rating == null) when we text/email a customer "how was your visit?", with a
+// random unguessable `token` that drives the public rating page at
+// /feedback/[token]. The customer's star rating + optional private comment land
+// here when they submit.
+//
+// Routing is intentionally NON-gating (Google policy + FTC): the public review
+// path stays reachable for everyone. High ratings lead with the Google CTA; low
+// ratings lead with the private comment box. We branch on `rating`, not on any
+// sentiment model — the customer tells us the number. Low-rating rows with a
+// comment are the seed of the communication-layer inbox (`resolvedAt` == null
+// means the owner hasn't handled it yet).
+//
+// Linked to a Customer with SetNull so the feedback log survives row deletion,
+// matching the Message convention.
+model Feedback {
+  id          String    @id @default(uuid()) @db.Uuid
+  businessId  String    @map("business_id") @db.Uuid
+  customerId  String?   @map("customer_id") @db.Uuid
+  // Unguessable token in the public URL; this is the only credential the
+  // unauthenticated rating page needs to resolve the request.
+  token       String    @unique
+  // 1–5 stars. Null until the customer submits — that's the "pending" state and
+  // what the review follow-up automation checks to avoid nagging someone who
+  // already rated.
+  rating      Int?
+  // Private free-text the customer leaves with a low rating; routed to the owner.
+  comment     String?
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  submittedAt DateTime? @map("submitted_at") @db.Timestamptz(6)
+  // Inbox triage: null = the owner hasn't actioned this feedback yet.
+  resolvedAt  DateTime? @map("resolved_at") @db.Timestamptz(6)
+
+  business Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  @@index([businessId])
+  @@index([customerId])
+  @@map("feedback")
 }
