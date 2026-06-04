@@ -1,3 +1,4 @@
+import { AutomationCheck } from "./automation-check";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -123,6 +124,8 @@ export default async function DashboardPage() {
           </Card>
         ))}
       </div>
+
+      <AutomationCheck />
 
       <Card>
         <CardHeader>
