@@ -69,9 +69,12 @@ Don't add dependencies unless they solve an immediate problem.
 - **Server Actions** return a serializable form-state (`{ error?; successAt? }`), signature
   `(_prev, formData) => Promise<State>`, `revalidatePath()` after mutating. Inline validation,
   no validation library.
-- **DB migrations:** the Prisma CLI reads `.env`, NOT `.env.local`. Always use the npm scripts
-  (`npm run db:migrate -- --name x`, `db:deploy`, `db:studio`, `db:generate`) — they wrap
-  Prisma in `dotenv-cli`. Restart `npm run dev` after a schema change so new types load.
+- **DB migrations:** always use the npm scripts (`npm run db:migrate -- --name x`, `db:deploy`,
+  `db:studio`) — they wrap Prisma in `dotenv-cli` as `dotenv -e .env.local -- prisma …`, so they
+  load credentials from **`.env.local`**. A bare `prisma migrate`/`studio` would read `.env` by
+  default and miss the (gitignored) `.env.local` creds — that's why the scripts exist. Note
+  `db:generate`/`build`/`postinstall` call `prisma generate` directly (no dotenv — codegen needs
+  no DB connection). Restart `npm run dev` after a schema change so new types load.
 - **Phones:** normalize to E.164 via `normalizePhone()` at every entry point (manual add, CSV,
   missed-lead) — inbound reply matching is exact-string.
 - **Env:** only `NEXT_PUBLIC_*` reaches the browser; everything else is server-only.
