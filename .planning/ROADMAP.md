@@ -37,7 +37,13 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. An owner can add an appointment to a customer manually, and import appointment history via CSV, with bad rows surfaced in a preview rather than silently dropped.
   3. The customer's most-recent visit is derived from their appointment records, and the existing rebooking/win-back behavior driven by last-visit still produces correct results (migrated or derived).
   4. Adding/importing appointments is scoped to the owner's business — no appointment leaks across businesses.
-**Plans:** TBD
+**Plans:** 4 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — Foundation: Appointment model + [BLOCKING] migration/backfill + recomputeLastAppointment helper
+- [ ] 01-02-PLAN.md — Slice: customer detail page + manual add/delete visit + clickable table rows
+- [ ] 01-03-PLAN.md — D-07: customer create/import seed a backing appointment + recompute
+- [ ] 01-04-PLAN.md — Slice: appointments-CSV import (parser, action, preview dialog, fixture)
 
 ### Phase 2: Predictive Rebooking
 **Goal:** Each customer is nudged to rebook when overdue relative to their own learned visit interval (with a default fallback when history is thin), replacing the fixed 60–120 day window — and the dashboard preview shows exactly who will be nudged.
@@ -69,6 +75,6 @@ Phases execute in numeric order: 1 → 2 → 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Appointment History Foundation | 0/TBD | Not started | - |
+| 1. Appointment History Foundation | 0/4 | Planned | - |
 | 2. Predictive Rebooking | 0/TBD | Not started | - |
 | 3. Staged Win-Back | 0/TBD | Not started | - |
