@@ -49,6 +49,7 @@ model Business {
   messageTemplates MessageTemplate[]
   missedLeads      MissedLead[]
   feedback         Feedback[]
+  appointments     Appointment[]
 
   @@index([ownerId])
   @@map("businesses")
@@ -68,9 +69,10 @@ model Customer {
   smsOptedOut       Boolean   @default(false) @map("sms_opted_out")
   smsOptedOutAt     DateTime? @map("sms_opted_out_at") @db.Timestamptz(6)
 
-  business Business   @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  messages Message[]
-  feedback Feedback[]
+  business     Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  messages     Message[]
+  feedback     Feedback[]
+  appointments Appointment[]
 
   @@index([businessId])
   @@map("customers")
@@ -217,4 +219,33 @@ model Feedback {
   @@index([businessId])
   @@index([customerId])
   @@map("feedback")
+}
+
+// A single recorded visit for a customer. This is the per-visit history behind the
+// derived `Customer.lastAppointmentAt` cache (D-04): that field always equals
+// MAX(appointment.date) for the customer (NULL when none), maintained by
+// `recomputeLastAppointment` in lib/appointments.ts.
+//
+// Unlike the Message/Feedback logs (nullable customerId + SetNull), an appointment
+// IS the customer's history and is meaningless without them, so `customerId` is
+// NON-NULL and the customer relation cascades on delete (D-01). `date` stores the
+// full timestamp (D-03) even though the add/import UI captures a date only; the time
+// is optional and Phase-2 cadence math works off the date. `source` is a nullable
+// plain string ('manual' | 'csv' | 'backfill' | a future integration's provider name),
+// left open so an integration can write its own source without a migration.
+model Appointment {
+  id         String   @id @default(uuid()) @db.Uuid
+  businessId String   @map("business_id") @db.Uuid
+  customerId String   @map("customer_id") @db.Uuid
+  date       DateTime @db.Timestamptz(6)
+  service    String?
+  source     String?
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+  @@index([customerId, date])
+  @@map("appointments")
 }
