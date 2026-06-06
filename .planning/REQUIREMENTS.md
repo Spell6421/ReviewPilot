@@ -18,10 +18,10 @@
 
 ### Predictive Rebooking (REBK)
 
-- [ ] **REBK-01**: System computes each customer's typical visit interval (average/median gap) from their appointment history.
-- [ ] **REBK-02**: A customer becomes due for a rebooking nudge when overdue relative to *their own* learned interval, replacing the fixed 60–120 day window.
-- [ ] **REBK-03**: When a customer's history is too thin to learn a cadence, the system falls back to a configurable default interval.
-- [ ] **REBK-04**: A customer receives at most one rebooking nudge per dry spell; booking again resets eligibility.
+- [x] **REBK-01**: System computes each customer's typical visit interval (median gap) from their appointment history. *(Phase 2 — `computeIntervalDays`)*
+- [x] **REBK-02**: A customer becomes due for a rebooking nudge when overdue relative to *their own* learned interval, replacing the fixed 60–120 day window. *(Phase 2)*
+- [x] **REBK-03**: When a customer's history is too thin to learn a cadence, the system falls back to a configurable default interval (45 days). *(Phase 2)*
+- [x] **REBK-04**: A customer receives at most one rebooking nudge per dry spell; booking again resets eligibility. *(Phase 2)*
 
 ### Staged Win-Back (WINB)
 
@@ -32,10 +32,10 @@
 
 ### Engine Integrity (ENGN)
 
-- [ ] **ENGN-01**: Predictive rebooking and staged win-back remain pure `find*` lookups the dashboard "Test my setup" preview can dry-run (find/send/preview symmetry preserved).
-- [ ] **ENGN-02**: The dashboard preview accurately reflects what the cron will send under the new logic.
-- [ ] **ENGN-03**: Existing review follow-up and missed-call follow-up automations continue working unchanged.
-- [ ] **ENGN-04**: Opt-out, record-before-send, and one-touch-per-anchor rules continue to hold for the new automations.
+- [x] **ENGN-01**: Predictive rebooking remains a pure `find*` lookup the dashboard "Test my setup" preview can dry-run (find/send/preview symmetry preserved). *(Phase 2; Phase 3's staged win-back must keep this)*
+- [x] **ENGN-02**: The dashboard preview accurately reflects what the cron will send under the new logic. *(Phase 2)*
+- [x] **ENGN-03**: Existing review follow-up and missed-call follow-up automations continue working unchanged. *(Phase 2)*
+- [x] **ENGN-04**: Opt-out, record-before-send, and one-touch-per-anchor rules continue to hold for the new automations. *(Phase 2)*
 
 ## v2 Requirements
 
@@ -73,18 +73,18 @@ Which phases cover which requirements. Updated during roadmap creation.
 | APPT-01 | Phase 1 (01-01) | Complete |
 | APPT-02 | Phase 1 (01-02 manual / 01-03 customer-flow seed / 01-04 CSV) | Complete — manual add/delete (01-02), customer create/import seeding (01-03 D-07), and dedicated appointments-CSV import (01-04) all shipped |
 | APPT-03 | Phase 1 (01-01) | Complete |
-| REBK-01 | Phase 2 | Pending |
-| REBK-02 | Phase 2 | Pending |
-| REBK-03 | Phase 2 | Pending |
-| REBK-04 | Phase 2 | Pending |
+| REBK-01 | Phase 2 | Complete |
+| REBK-02 | Phase 2 | Complete |
+| REBK-03 | Phase 2 | Complete |
+| REBK-04 | Phase 2 | Complete |
 | WINB-01 | Phase 3 | Pending |
 | WINB-02 | Phase 3 | Pending |
 | WINB-03 | Phase 3 | Pending |
 | WINB-04 | Phase 3 | Pending |
-| ENGN-01 | Phase 2 | Pending |
-| ENGN-02 | Phase 2 | Pending |
-| ENGN-03 | Phase 2 | Pending |
-| ENGN-04 | Phase 2 | Pending |
+| ENGN-01 | Phase 2 | Complete |
+| ENGN-02 | Phase 2 | Complete |
+| ENGN-03 | Phase 2 | Complete |
+| ENGN-04 | Phase 2 | Complete |
 
 **Coverage:**
 - v1 requirements: 15 total
@@ -93,4 +93,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-06-03*
-*Last updated: 2026-06-06 — APPT-02 COMPLETE: dedicated appointments-CSV import shipped (Phase 1, Plan 01-04 — parser, phone match/auto-create D-09, idempotent dedup D-10/D-13, preview), closing both the manual and CSV halves*
+*Last updated: 2026-06-06 — Phase 2 COMPLETE: predictive rebooking shipped (REBK-01…04, ENGN-01…04; commit `e4ff002`). Remaining v1 work: staged win-back (WINB-01…04, Phase 3).*

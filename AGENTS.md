@@ -31,8 +31,10 @@ Use these names when discussing scope:
 1. **Integration** — connect Square / GlossGenius / Booksy / … + the phone provider; pull
    customers + appointment history; ingest events. CSV/manual stays the fallback. **⛔ not built.**
 2. **Automation** — the meat: review request + feedback gating, predictive rebook reminders,
-   missed-call follow-up, win-back. **🟡 built but naive** (`lib/automations/`): fixed time
-   windows, no per-customer cadence learning.
+   missed-call follow-up, win-back. **🟡 mostly built** (`lib/automations/`): rebooking is now
+   per-customer predictive (learned cadence off real `Appointment` history); review + missed-call
+   follow-ups and the feedback-gated rating page work; win-back is still a single fixed-window
+   touch (staged win-back is the remaining piece).
 3. **Communication** — one structured inbox for all inbound (replies, routed negative
    feedback, opt-outs). **⛔ not built** (replies are only counted today).
 4. **Analytics** — owner-grade ROI dashboard. **⛔ not built.**
