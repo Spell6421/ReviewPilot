@@ -12,9 +12,9 @@
 
 ### Appointment History (APPT)
 
-- [ ] **APPT-01**: Customer visit history is stored as individual `Appointment` records (date, optional service, optional source) — not just a single `lastAppointmentAt`.
+- [x] **APPT-01**: Customer visit history is stored as individual `Appointment` records (date, optional service, optional source) — not just a single `lastAppointmentAt`. *(Phase 1, Plan 01-01)*
 - [ ] **APPT-02**: Owner can seed/import appointment history manually and via CSV, so cadence works before integrations exist.
-- [ ] **APPT-03**: A customer's most-recent visit is derived from their `Appointment` records; existing `lastAppointmentAt`-driven behavior stays correct (migrated or derived).
+- [x] **APPT-03**: A customer's most-recent visit is derived from their `Appointment` records; existing `lastAppointmentAt`-driven behavior stays correct (migrated or derived). *(Phase 1, Plan 01-01)*
 
 ### Predictive Rebooking (REBK)
 
@@ -70,9 +70,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| APPT-01 | Phase 1 | Pending |
+| APPT-01 | Phase 1 (01-01) | Complete |
 | APPT-02 | Phase 1 | Pending |
-| APPT-03 | Phase 1 | Pending |
+| APPT-03 | Phase 1 (01-01) | Complete |
 | REBK-01 | Phase 2 | Pending |
 | REBK-02 | Phase 2 | Pending |
 | REBK-03 | Phase 2 | Pending |
@@ -93,4 +93,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-06-03*
-*Last updated: 2026-06-03 after roadmap creation (traceability mapped)*
+*Last updated: 2026-06-06 — APPT-01 + APPT-03 completed (Phase 1, Plan 01-01)*

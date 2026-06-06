@@ -45,7 +45,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 Plans:
 **Wave 1**
 
-- [ ] 01-01-PLAN.md — Foundation: Appointment model + [BLOCKING] migration/backfill + recomputeLastAppointment helper
+- [x] 01-01-PLAN.md — Foundation: Appointment model + [BLOCKING] migration/backfill + recomputeLastAppointment helper
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -92,6 +92,6 @@ Phases execute in numeric order: 1 → 2 → 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Appointment History Foundation | 0/4 | Planned | - |
+| 1. Appointment History Foundation | 1/4 | In Progress | - |
 | 2. Predictive Rebooking | 0/TBD | Not started | - |
 | 3. Staged Win-Back | 0/TBD | Not started | - |

@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 1 context gathered
-last_updated: "2026-06-05T02:40:33.707Z"
-last_activity: 2026-06-03 — Roadmap created, 3 phases, 15/15 requirements mapped
+stopped_at: Completed 01-01-PLAN.md
+last_updated: "2026-06-06T00:00:00.000Z"
+last_activity: 2026-06-06 -- Plan 01-01 complete (Appointment foundation)
 progress:
   total_phases: 3
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  total_plans: 4
+  completed_plans: 1
+  percent: 25
 ---
 
 # Project State
@@ -21,34 +21,34 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-03)
 
 **Core value:** Bring customers back at the right time, automatically — predictive, per-customer rebooking.
-**Current focus:** Phase 1 — Appointment History Foundation
+**Current focus:** Phase 01 — appointment-history-foundation
 
 ## Current Position
 
-Phase: 1 of 3 (Appointment History Foundation)
-Plan: 0 of TBD in current phase
-Status: Ready to execute
-Last activity: 2026-06-03 — Roadmap created, 3 phases, 15/15 requirements mapped
+Phase: 01 (appointment-history-foundation) — EXECUTING
+Plan: 2 of 4
+Status: Executing Phase 01
+Last activity: 2026-06-06 -- Plan 01-01 complete (Appointment foundation)
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [██▌░░░░░░░] 25%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 0
-- Average duration: — min
-- Total execution time: 0 hours
+- Total plans completed: 1
+- Average duration: ~25 min
+- Total execution time: ~0.4 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 01 | 1/4 | ~25 min | ~25 min |
 
 **Recent Trend:**
 
-- Last 5 plans: —
+- Last 5 plans: 01-01 (~25 min)
 - Trend: —
 
 *Updated after each plan completion*
@@ -64,6 +64,9 @@ Recent decisions affecting current work:
 - [Milestone]: Add a real `Appointment` history model; integrations populate it later, seed manually/CSV now.
 - [Milestone]: Staged win-back (~60/120/360) is sequential after rebooking — rebooking never cancels win-back; never both in one cron run.
 - [Architecture]: Preserve find/send/preview symmetry and the shared `sendMessage()` core — smarter automations must still be a `find*` the preview can dry-run.
+- [01-01/D-01]: `Appointment.customerId` is non-null with `onDelete: Cascade` (owned history) — deliberately differs from the nullable SetNull log models (Message/Feedback).
+- [01-01/D-04]: `lastAppointmentAt` kept as a derived cache; one shared `recomputeLastAppointment(customerId, businessId)` helper (ownership-safe `updateMany`) re-derives it so it never drifts — all mutation paths must call it.
+- [01-01/D-06]: The appointment backfill ships in the SAME migration as the CreateTable so the cache invariant holds from day one.
 
 ### Pending Todos
 
@@ -83,6 +86,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-05T00:25:18.829Z
-Stopped at: Phase 1 context gathered
-Resume file: .planning/phases/01-appointment-history-foundation/01-CONTEXT.md
+Last session: 2026-06-06T00:00:00.000Z
+Stopped at: Completed 01-01-PLAN.md
+Resume file: None
