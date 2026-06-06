@@ -114,15 +114,42 @@ export async function importCustomersAction(
     return { error: "No valid rows to import." };
   }
 
-  await prisma.customer.createMany({
-    data: valid.map((r) => ({
-      businessId: business.id,
-      name: r.name,
-      phone: r.phone,
-      email: r.email,
-      lastAppointmentAt: r.lastAppointmentAt,
-    })),
-  });
+  // Insert each valid row WITHOUT writing lastAppointmentAt directly. We create
+  // per-row (rather than createMany) so we capture each new customer's id and can
+  // reliably map a row that carried a last-visit value to exactly one seed
+  // Appointment (source='csv') — no cross-row collision from a fragile re-fetch.
+  // The cache is then derived by recomputeLastAppointment, so a last-visit value
+  // can never be orphaned (D-07).
+  const affectedCustomerIds = new Set<string>();
+  for (const r of valid) {
+    const customer = await prisma.customer.create({
+      data: {
+        businessId: business.id,
+        name: r.name,
+        phone: r.phone,
+        email: r.email,
+      },
+    });
+
+    if (r.lastAppointmentAt) {
+      await prisma.appointment.create({
+        data: {
+          businessId: business.id,
+          customerId: customer.id,
+          date: r.lastAppointmentAt,
+          service: null,
+          source: "csv",
+        },
+      });
+      affectedCustomerIds.add(customer.id);
+    }
+  }
+
+  // Recompute the cache ONCE per distinct affected customer (never per row —
+  // RESEARCH Pitfall 1). Each id is unique here (one create per row).
+  for (const customerId of affectedCustomerIds) {
+    await recomputeLastAppointment(customerId, business.id);
+  }
 
   revalidatePath("/customers");
   return {
