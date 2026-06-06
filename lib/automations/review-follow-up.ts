@@ -63,6 +63,10 @@ export async function findReviewFollowUps(
         businessId: business.id,
         type: "review_follow_up",
         customerId: { in: candidateIds },
+        // A failed attempt doesn't count as a follow-up — exclude it so a
+        // transient send failure retries on a later run (the 30-day anchor
+        // ceiling above bounds how long it can keep retrying).
+        status: { not: "failed" },
       },
       select: { customerId: true },
     }),

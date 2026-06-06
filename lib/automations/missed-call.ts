@@ -57,6 +57,10 @@ export async function findMissedCallFollowUps(
         businessId: business.id,
         type: "missed_call_follow_up",
         missedLeadId: { in: ids },
+        // A failed attempt doesn't count as a follow-up — exclude it so a
+        // transient send failure retries on a later run (the 30-day anchor
+        // window above bounds how long it can keep retrying).
+        status: { not: "failed" },
       },
       select: { missedLeadId: true },
     }),

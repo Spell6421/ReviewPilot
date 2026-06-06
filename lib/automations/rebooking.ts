@@ -192,11 +192,18 @@ async function findStagedWinBacks(
   ).filter((c) => !excludeIds.has(c.id));
   if (candidates.length === 0) return [];
 
-  // Every win_back we've sent these customers, to derive each one's current
-  // stage (count since their last visit) and the date of their latest touch.
+  // Every win_back we've sent these customers (failed attempts excluded, so a
+  // transient send failure retries on a later run instead of falsely advancing
+  // the stage), to derive each one's current stage (count since their last
+  // visit) and the date of their latest touch.
   const ids = candidates.map((c) => c.id);
   const priorWinBacks = await prisma.message.findMany({
-    where: { businessId: business.id, type: "win_back", customerId: { in: ids } },
+    where: {
+      businessId: business.id,
+      type: "win_back",
+      customerId: { in: ids },
+      status: { not: "failed" },
+    },
     select: { customerId: true, createdAt: true },
   });
   const sentDatesByCustomer = new Map<string, Date[]>();
@@ -290,10 +297,17 @@ async function buildPass(
 ): Promise<DueSend[]> {
   if (candidates.length === 0) return [];
 
-  // Who already got this nudge type, and when (latest)?
+  // Who already got this nudge type, and when (latest)? Failed attempts don't
+  // count — excluding them lets a transient send failure retry on a later run
+  // (the overdue window in Pass 1 bounds how long it can keep retrying).
   const ids = candidates.map((c) => c.id);
   const priorNudges = await prisma.message.findMany({
-    where: { businessId: business.id, type, customerId: { in: ids } },
+    where: {
+      businessId: business.id,
+      type,
+      customerId: { in: ids },
+      status: { not: "failed" },
+    },
     select: { customerId: true, createdAt: true },
   });
   const lastNudgedAt = new Map<string, Date>();
