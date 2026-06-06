@@ -49,7 +49,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 01-02-PLAN.md — Slice: customer detail page + manual add/delete visit + clickable table rows
+- [x] 01-02-PLAN.md — Slice: customer detail page + manual add/delete visit + clickable table rows
 - [ ] 01-03-PLAN.md — D-07: customer create/import seed a backing appointment + recompute
 
 **Wave 3** *(blocked on Wave 2 completion)*
@@ -92,6 +92,6 @@ Phases execute in numeric order: 1 → 2 → 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Appointment History Foundation | 1/4 | In Progress | - |
+| 1. Appointment History Foundation | 2/4 | In Progress | - |
 | 2. Predictive Rebooking | 0/TBD | Not started | - |
 | 3. Staged Win-Back | 0/TBD | Not started | - |
