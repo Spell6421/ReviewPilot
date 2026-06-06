@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { recomputeLastAppointment } from "@/lib/appointments";
 import { parseCustomersCsv } from "@/lib/csv-import";
 import { requireCurrentBusiness } from "@/lib/current-business";
 import { normalizePhone } from "@/lib/phone";
@@ -51,15 +52,31 @@ export async function createCustomerAction(
     lastAppointmentAt = parsed;
   }
 
-  await prisma.customer.create({
+  // Create the customer WITHOUT writing lastAppointmentAt directly. When a
+  // last-visit date is provided, seed a backing Appointment (D-07) and let
+  // recomputeLastAppointment derive the cache, so a last-visit value can never
+  // be orphaned (no lastAppointmentAt without a matching appointment row).
+  const customer = await prisma.customer.create({
     data: {
       businessId: business.id,
       name,
       phone,
       email,
-      lastAppointmentAt,
     },
   });
+
+  if (lastAppointmentAt) {
+    await prisma.appointment.create({
+      data: {
+        businessId: business.id,
+        customerId: customer.id,
+        date: lastAppointmentAt,
+        service: null,
+        source: "manual",
+      },
+    });
+    await recomputeLastAppointment(customer.id, business.id);
+  }
 
   revalidatePath("/customers");
   return { successAt: Date.now() };
