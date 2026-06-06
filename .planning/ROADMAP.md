@@ -20,7 +20,7 @@ the preview can dry-run, and the existing review and missed-call automations kee
 |-------|--------|-------|
 | 1. Appointment History Foundation | ✅ **Done** | `Appointment` model + migration/backfill (applied to live DB), manual add/delete, customer-create/import seeding, appointments-CSV import |
 | 2. Predictive Rebooking | ✅ **Done** | Per-customer learned cadence (median gap), default fallback, overdue ceiling. Committed `e4ff002`. Built natively after GSD offboarding |
-| 3. Staged Win-Back | ⬜ **Next** | Multi-touch (~60/120/360-day) recovery; should also make win-back cadence-aware (see [CONCERNS.md](CONCERNS.md) — win-back is currently cadence-blind) |
+| 3. Staged Win-Back | ✅ **Done** | Multi-touch staged recovery (count-of-`win_back`-since-last-visit, capped at 3 touches) made cadence-aware: the sequence starts at `interval × OVERDUE_CEILING` (floored at 60d), contiguous with rebooking — closing the cadence-blind seam. `lib/automations/rebooking.ts` |
 
 ## Phases
 
@@ -49,22 +49,23 @@ the dashboard preview shows exactly who will be nudged.
 3. ✅ At most one rebooking nudge per dry spell; a new booking recomputes cadence and re-arms eligibility.
 4. ✅ Cron sends only to reachable, opted-in customers, records every attempt before sending; review + missed-call automations unchanged.
 
-### Phase 3: Staged Win-Back — ⬜ Next
+### Phase 3: Staged Win-Back — ✅ Done
 
 **Goal:** Customers who stay cold receive a *staged* sequence of win-back messages at multiple
 intervals (~60/120/360 days), continuing in time after any rebooking nudge, without ever
 double-touching the same customer in a single cron run.
-**Requirements:** WINB-01, WINB-02, WINB-03, WINB-04
-**Success Criteria** (what must be TRUE):
+**Requirements:** WINB-01, WINB-02, WINB-03, WINB-04 (all complete)
+**Delivered:** `lib/automations/rebooking.ts` (`findStagedWinBacks`):
 
-1. A cold customer receives staged win-back messages at multiple intervals (~60/120/360 days), each stage firing at most once per cold spell, and a new booking resets the whole sequence.
-2. A customer who got a rebooking nudge and stayed cold still enters the staged win-back sequence — the prior rebooking does not cancel or permanently block win-back.
-3. In any single cron run, a customer receives either a rebooking nudge or a win-back stage, never both — and the preview reflects the same de-confliction before sending.
+1. ✅ A cold customer receives staged win-back messages at multiple intervals, each stage firing at most once per cold spell, and a new booking resets the whole sequence. *(Stage = count of `win_back` sends since `lastAppointmentAt`, capped at `WIN_BACK_STAGES`=3; thresholds `coldThreshold + [0,60,300]` days realize ~60/120/360 at the floor; a `WIN_BACK_MIN_SPACING_DAYS` guard prevents bursts on late discovery.)*
+2. ✅ A customer who got a rebooking nudge and stayed cold still enters the staged win-back sequence — the prior rebooking does not cancel or permanently block win-back. *(Win-back gating counts only `win_back` messages; the cadence-aware cold point starts the sequence right after the rebooking window.)*
+3. ✅ In any single cron run, a customer receives either a rebooking nudge or a win-back stage, never both — and the preview reflects the same de-confliction before sending. *(Per-run `rebookedThisRun` exclusion; the staged win-back stays a pure `find*` the "Test my setup" preview dry-runs.)*
 
-**Design note (from the Phase 2 build):** win-back is currently *cadence-blind* (fixed
-120–365-day window) while rebooking is cadence-aware. Folding cadence-awareness into win-back
-as part of staging closes the seam where a long-cadence customer skips the rebooking nudge and
-the thin-history 90–120-day dead zone. See [CONCERNS.md](CONCERNS.md).
+**Design note resolved:** win-back was *cadence-blind* (fixed 120–365-day window) while rebooking
+was cadence-aware. Phase 3 made win-back cadence-aware — its first touch fires at
+`interval × OVERDUE_CEILING` (floored at 60 days), the same seam where rebooking stops — closing
+both the long-cadence skip and the thin-history 90–120-day dead zone flagged in
+[CONCERNS.md](CONCERNS.md).
 
 ## After this milestone
 

@@ -42,9 +42,10 @@ The whole app is organized as four stacked layers. Use these names when discussi
      when due (start from a default interval, then per-customer frequency).
    - **Missed-call follow-up** — text/email after a missed call.
    - **Win-back** — staged messages (~60/120/360 days) to recover cold customers.
-   - *Built: rebooking is now per-customer predictive; review + missed-call follow-ups and the
-     feedback-gated rating page work. Remaining: staged win-back (today's win-back is a single
-     fixed-window touch). See "Automation engine".*
+   - *Built: rebooking is per-customer predictive; win-back is now staged + cadence-aware (up to
+     3 touches per cold spell, starting where rebooking leaves off); review + missed-call
+     follow-ups and the feedback-gated rating page work. All four automations are smart. See
+     "Automation engine".*
 3. **Communication layer** — a single, structured, sortable inbox for everything inbound
    (replies, routed negative feedback, opt-outs). **Not built yet** (replies are currently
    only counted on the dashboard).
@@ -59,14 +60,15 @@ The app is the bare foundation of layers 2–3:
 - **SMS (Twilio) + email (Resend)** sending works, with the full SMS loop: delivery-status
   webhook, inbound-reply webhook, STOP/opt-out.
 - An **automation engine** (`lib/automations/`) — review follow-up, predictive rebooking,
-  win-back, missed-call follow-up — runs via a cron route with a dry-run preview. Rebooking
-  now learns each customer's cadence from real `Appointment` history; the feedback-gated rating
-  page routes off the 1–5 score (happy → Google, unhappy → owner). Still naive: win-back is a
-  single fixed-window touch (not yet staged), and in-text reply routing into an inbox isn't built.
+  staged win-back, missed-call follow-up — runs via a cron route with a dry-run preview.
+  Rebooking learns each customer's cadence from real `Appointment` history; win-back is staged
+  + cadence-aware (up to 3 touches, starting where rebooking leaves off); the feedback-gated
+  rating page routes off the 1–5 score (happy → Google, unhappy → owner). Remaining naivety:
+  in-text reply routing into an inbox isn't built.
 
-**Not built:** any integration, staged multi-touch win-back, in-text reply routing into a
-structured inbox, the analytics/ROI dashboard, and billing (Stripe). Prefer simple,
-readable implementations over abstraction.
+**Not built:** any integration, in-text reply routing into a structured inbox, the
+analytics/ROI dashboard, and billing (Stripe). Prefer simple, readable implementations over
+abstraction.
 
 ## Tech stack (actual)
 
@@ -76,7 +78,7 @@ readable implementations over abstraction.
 - **Auth:** Supabase Auth via `@supabase/ssr` (email/password)
 - **SMS:** Twilio **v6** — **fully wired** (send + delivery webhook + inbound/reply webhook + opt-out)
 - **Email:** Resend **v6** — **wired** (send path; delivery webhooks not yet)
-- **Automation:** in-app engine (`lib/automations/`) triggered by a **Vercel Cron** job hitting a secret-gated route — review follow-up, **predictive** rebooking, win-back (still fixed-window), missed-call follow-up
+- **Automation:** in-app engine (`lib/automations/`) triggered by a **Vercel Cron** job hitting a secret-gated route — review follow-up, **predictive** rebooking, **staged** cadence-aware win-back, missed-call follow-up
 - **Integrations:** booking/phone platforms (Square, GlossGenius, …) — **not yet implemented**
 - **Billing:** Stripe — **not yet implemented**
 - **Hosting:** Vercel (intended)
@@ -227,7 +229,7 @@ The full SMS loop works. When extending it, stay conservative.
 
 ## Automation engine (the automation layer, as built)
 
-Unattended, schedule-driven sends. Lives in `lib/automations/` and reuses the same `sendMessage()` core as the UI. This is the **current, naive seed** of the automation layer — it works, but it dedups by querying the `Message` log and uses fixed time windows. The vision adds per-customer cadence learning and feedback gating on top.
+Unattended, schedule-driven sends. Lives in `lib/automations/` and reuses the same `sendMessage()` core as the UI. The layer is now **smart**: rebooking and win-back are per-customer cadence-aware (learned off `Appointment` history) and the review path is feedback-gated. Dedup is still query-based against the `Message` log (no scheduling columns) — correct and cheap at MVP scale; review and missed-call follow-ups keep their fixed 2–30-day anchor windows, which is right for those.
 
 **Trigger:** `app/api/cron/automations/route.ts` — a route handler gated by a `CRON_SECRET` bearer token (fails closed if unset). **Vercel Cron** (`vercel.json`, daily) hits it with **GET** and Vercel attaches the `Authorization: Bearer ${CRON_SECRET}` header automatically; **POST** is the same handler for manual/local triggering (`curl -X POST … -H "Authorization: Bearer <secret>"`). There's no logged-in user, so `runAutomations()` enumerates **all** businesses and each automation scopes its own queries by `business.id`.
 
@@ -235,7 +237,7 @@ Unattended, schedule-driven sends. Lives in `lib/automations/` and reuses the sa
 
 **The three automations** (all dedup query-only against the `Message` log — no scheduling columns):
 - **review follow-up** (`review-follow-up.ts`): a `review_request` that went `sent` 2–30 days ago, to a customer with no `review_follow_up` yet and who hasn't `replied`. One per request (the 30-day ceiling stops a first-run blast). Follows up on the original request's channel.
-- **rebooking / win-back** (`rebooking.ts`): two passes off the customer's `Appointment` history (summarized by the `lastAppointmentAt` cache). **Predictive `rebooking_reminder`** — nudges a customer once they pass *their own* learned cadence (median gap between past visits; 45-day default when history is thin; clamped 14–365 days; an overdue ceiling of 2× hands the very-late off to win-back). **`win_back`** — still a fixed 120–365-day window, single touch. Win-back runs after rebooking and excludes anyone rebooked in the same run, so a customer never gets both in one pass. Dedup = no nudge of that type since the last appointment; a new booking recomputes cadence and re-arms eligibility. Prefers SMS, falls back to email. *(Remaining: staged multi-touch win-back — Phase 3.)*
+- **rebooking / win-back** (`rebooking.ts`): two passes off the customer's `Appointment` history (summarized by the `lastAppointmentAt` cache). **Predictive `rebooking_reminder`** — nudges a customer once they pass *their own* learned cadence (median gap between past visits; 45-day default when history is thin; clamped 14–365 days; an overdue ceiling of 2× hands the very-late off to win-back). **Staged `win_back`** (`findStagedWinBacks`) — a customer who stays cold gets up to `WIN_BACK_STAGES` (3) touches at increasing day-since-visit thresholds (`coldThreshold + [0,60,300]`, realizing ~60/120/360 at the floor). It's cadence-aware: the first touch fires at `interval × OVERDUE_CEILING` (floored at 60 days) — the exact point rebooking stops — so the passes are contiguous (no overlap, no dead zone). A customer's *stage* is the count of `win_back` sends since their last visit, so each stage fires once and a new booking resets the whole sequence; a `WIN_BACK_MIN_SPACING_DAYS` (45) guard prevents a burst when a long-cold customer is discovered all at once. Win-back runs after rebooking and excludes anyone rebooked in the same run, so a customer never gets both in one pass. A new booking recomputes cadence and re-arms eligibility. Prefers SMS, falls back to email.
 - **missed-call follow-up** (`missed-call.ts`): a lead still in `contacted` whose `missed_call_recovery` went `sent` 2–30 days ago, with no `missed_call_follow_up` yet and no reply. Sends as its own `missed_call_follow_up` type (SMS-only; leads have no email).
 
 **Rules of the road** still apply: at most one follow-up per anchor, honor opt-out (the send core does), store every attempt. When adding an automation: write a `find*` returning `DueSend[]`, register it in `run.ts` (`findDueSends` + the send tally), add a preview line in `preview.ts`, and reuse `sendMessage()` — never send directly.
@@ -299,11 +301,12 @@ messaging loop are done; the pivot work is layers 1, 3, 4 plus making layer 2 sm
   message log), Supabase auth + Prisma persistence + per-user scoping.
 - **Messaging — ✅ done:** SMS send + delivery/inbound webhooks + opt-out + E.164; Resend
   email send (email delivery webhooks ⛔).
-- **Automation layer — 🟡 mostly built:** cron engine with dry-run preview for review
-  follow-up, **predictive per-customer rebooking** (learned cadence off `Appointment` history),
-  win-back, and missed-call follow-up; the feedback-gated rating page routes happy → Google /
-  unhappy → owner. **Next up:** staged multi-touch win-back (~60/120/360); then in-text reply
-  routing into the communication-layer inbox.
+- **Automation layer — 🟢 built:** cron engine with dry-run preview for review follow-up,
+  **predictive per-customer rebooking** (learned cadence off `Appointment` history), **staged
+  cadence-aware win-back** (up to 3 touches per cold spell, starting where rebooking leaves off),
+  and missed-call follow-up; the feedback-gated rating page routes happy → Google / unhappy →
+  owner. All four automations are smart. **Next up (new milestone):** in-text reply routing into
+  the communication-layer inbox.
 - **Integration layer — ⛔ not started:** customer-usable connect flows for Square,
   GlossGenius, and peers; pull customers + appointment history; ingest appointment-completed
   and missed-call events. CSV/manual stays as fallback.

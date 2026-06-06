@@ -21,9 +21,10 @@ else fails, recovering repeat bookings without the owner lifting a finger must w
 
 ## Current Milestone
 
-**Automation layer — make it smart.** Most of the way there: real `Appointment` history and
-**predictive per-customer rebooking** are built (Phases 1–2); the remaining piece is **staged
-multi-touch win-back** (Phase 3). See `.planning/ROADMAP.md`.
+**Automation layer — make it smart.** ✅ Feature-complete: real `Appointment` history (Phase 1),
+**predictive per-customer rebooking** (Phase 2), and **staged, cadence-aware win-back** (Phase 3)
+are all built. All four automations are now smart. Next milestone: the **communication inbox**.
+See `.planning/ROADMAP.md`.
 
 > **Build assumption:** integrations are *assumed*. Any data the automations rely on —
 > appointment history, phone numbers, last-visit dates, missed-call events — will be piped in
@@ -56,7 +57,7 @@ multi-touch win-back** (Phase 3). See `.planning/ROADMAP.md`.
 - [x] Default-interval fallback when a customer's history is too thin to learn a cadence — **shipped (Phase 2, 45-day default)**
 - [x] Preserve find/send/preview symmetry — predictive logic stays a `find*` the preview can dry-run — **preserved**
 - [x] Keep review + missed-call automations working unchanged — **preserved**
-- [ ] Staged win-back: multi-touch (~60/120/360 days) for cold customers, replacing the single-shot win-back — **Phase 3, next**
+- [x] Staged win-back: multi-touch (~60/120/360 days) for cold customers, cadence-aware (starts where rebooking leaves off), replacing the single-shot win-back — **shipped (Phase 3)**
 
 ### Out of Scope
 
@@ -91,7 +92,7 @@ multi-touch win-back** (Phase 3). See `.planning/ROADMAP.md`.
 | Scope this roadmap to the automation layer only | Go layer-by-layer to avoid context rot; inbox/analytics/billing become later milestones | — Pending |
 | Predictive rebooking = per-customer median cadence (not richer modeling) | Simple, explainable, no ML; accurate enough for MVP; default fallback when history is thin | ✅ Shipped (Phase 2) |
 | Add a real `Appointment` history model | Genuine cadence needs actual visit history, not a single `lastAppointmentAt`; integrations populate it later | ✅ Shipped (Phase 1) |
-| Staged win-back (~60/120/360) instead of single-shot | Vision calls for multi-touch recovery of cold customers | Phase 3 (next) |
+| Staged win-back (~60/120/360) instead of single-shot | Vision calls for multi-touch recovery of cold customers | ✅ Shipped (Phase 3) — made cadence-aware (starts at `interval × OVERDUE_CEILING`, floored 60d) to close the win-back/rebooking seam |
 | Defer in-text reply sentiment gating | Misclassification risk on short SMS; differentiator, not MVP; keep deterministic page gating | — Pending |
 | PROJECT.md describes the whole product; roadmap stays narrow | Keep an accurate north star while keeping execution tight | — Pending |
 
@@ -104,4 +105,4 @@ starts, and re-check that "What This Is" / Core Value still hold. Keep it honest
 north star a state eval reads first.
 
 ---
-*Last updated: 2026-06-06 — Phases 1–2 shipped (appointment history + predictive rebooking); staged win-back (Phase 3) remaining.*
+*Last updated: 2026-06-06 — Phases 1–3 shipped (appointment history + predictive rebooking + staged cadence-aware win-back). Automation-layer milestone feature-complete; next up is the communication inbox.*

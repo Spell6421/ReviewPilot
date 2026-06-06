@@ -11,7 +11,7 @@ or paid down; it's the first doc to read during a "what should I worry about?" s
 
 | Item | Where | Severity | Notes |
 |------|-------|----------|-------|
-| **Win-back is cadence-blind while rebooking is cadence-aware** | `lib/automations/rebooking.ts` | Medium | Rebooking now fires off each customer's *learned* interval, but win-back still uses a fixed 120–365-day window. So a customer whose own cadence is long (e.g. learned 200 days) and who's only ~150 days out is **not yet overdue** by rebooking, yet the fixed win-back window grabs them — they skip the gentle "you're due" nudge and jump to "we miss you." Also a thin-history customer (45-day default × 2 ceiling = 90) has a ~30-day **dead zone** (90–120 days) where neither pass fires. **Phase 3 (staged win-back) should make win-back cadence-aware to close this.** |
+| **Win-back cadence-blindness** — ✅ RESOLVED (Phase 3) | `lib/automations/rebooking.ts` | — | *Closed by staged win-back.* Win-back's first touch now fires at `interval × OVERDUE_CEILING` (floored at 60 days) — the exact point where rebooking stops — so the two passes are contiguous. This removed the long-cadence skip (a 200-day-cadence customer no longer jumps straight to "we miss you" at 120 days) and the thin-history 90–120-day dead zone. Kept here for the audit trail; no longer active debt. |
 | **Query-based automation dedup** | `lib/automations/*.ts` | Medium | Dedup is done by querying the `Message` log (rebooking also reads `Appointment` history) — no scheduling columns. Correct and cheap now; gets harder to reason about and slower as the log grows. |
 | **No retry / backoff on failed sends** | `lib/send-message.ts`, `lib/automations/run.ts` | Low–Medium | A failed Twilio/Resend call flips the row to `failed` and `console.error`s; nothing retries. Acceptable while volume is low. |
 | **Single shared Twilio number** | `lib/twilio.ts`, `app/api/twilio/inbound/route.ts` | Medium | Inbound replies are attributed to the most-recent outbound SMS to that `From` number. With many businesses sharing one number, attribution can collide. Per-business numbers fix it but aren't built. |
@@ -75,7 +75,7 @@ or paid down; it's the first doc to read during a "what should I worry about?" s
 
 ## Missing Capabilities (planned, not bugs)
 
-- No staged multi-touch win-back (today's win-back is one fixed-window touch) — **next milestone work**.
+- ~~No staged multi-touch win-back~~ — ✅ shipped (Phase 3): cadence-aware staged win-back (up to 3 touches per cold spell).
 - No in-text reply routing into a structured inbox (communication layer). Low-rating `Feedback`
   rows (`resolvedAt == null`) are the seed, surfaced on `/feedback`, but there's no unified inbox.
 - No integration layer (Square, GlossGenius, …) — CSV/manual is the only ingest.

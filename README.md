@@ -11,7 +11,7 @@ A SaaS for local service businesses — barbers, med spas, dentists, tattoo shop
 | Layer | What it does | Status |
 | --- | --- | --- |
 | **Integration** | Connect to the booking/phone systems owners already use (Square, GlossGenius, Booksy, Vagaro, …) to pull customers + appointment history and ingest events. CSV/manual is the fallback. | ⛔ Not started |
-| **Automation** | Review request + feedback gating, predictive rebook reminders, missed-call follow-up, win-back. | 🟡 Naive engine running |
+| **Automation** | Review request + feedback gating, predictive rebook reminders, missed-call follow-up, staged win-back. | 🟢 Built — all four automations smart |
 | **Communication** | A structured, sortable inbox for everything inbound — replies, routed negative feedback, opt-outs. | ⛔ Not started |
 | **Analytics** | An owner-grade ROI dashboard (reviews generated, calls recovered, customers rebooked, revenue recovered). | ⛔ Not started |
 
@@ -33,7 +33,7 @@ See [`docs/product-vision.md`](docs/product-vision.md) for the full pivot brief,
 - Customers added manually or via CSV import (E.164 normalization + validation)
 - SMS + email sending through a shared send core, with per-business templates
 - Full SMS loop: delivery-status webhook, inbound-reply attribution, STOP/opt-out handling
-- A first-pass automation engine (review follow-up, rebooking/win-back, missed-call follow-up) with a dashboard dry-run preview — fixed time windows, not yet predictive
+- A smart automation engine (review follow-up, predictive per-customer rebooking, staged cadence-aware win-back, missed-call follow-up) with a dashboard dry-run preview
 
 ## Getting started
 

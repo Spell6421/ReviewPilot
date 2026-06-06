@@ -25,10 +25,10 @@
 
 ### Staged Win-Back (WINB)
 
-- [ ] **WINB-01**: Cold customers receive *staged* win-back messages at multiple intervals (~60/120/360 days), not a single message.
-- [ ] **WINB-02**: Each win-back stage fires at most once per cold spell; a new booking resets the sequence.
-- [ ] **WINB-03**: A customer who received a rebooking nudge and stayed cold still enters the staged win-back sequence — rebooking does not cancel win-back; win-back follows it in time.
-- [ ] **WINB-04**: Rebooking and win-back never fire to the same customer in the same cron run (no same-day double-touch), but a prior rebooking nudge never blocks a later win-back stage.
+- [x] **WINB-01**: Cold customers receive *staged* win-back messages at multiple intervals (~60/120/360 days), not a single message. *(Phase 3 — stage = count of `win_back` sends since last visit, capped at `WIN_BACK_STAGES`; thresholds `coldThreshold + WIN_BACK_STAGE_OFFSETS [0,60,300]`.)*
+- [x] **WINB-02**: Each win-back stage fires at most once per cold spell; a new booking resets the sequence. *(Phase 3 — stage count is taken since `lastAppointmentAt`, so a new appointment resets it to zero and re-arms the whole sequence.)*
+- [x] **WINB-03**: A customer who received a rebooking nudge and stayed cold still enters the staged win-back sequence — rebooking does not cancel win-back; win-back follows it in time. *(Phase 3 — win-back gating counts only `win_back` messages; the cadence-aware cold point `interval × OVERDUE_CEILING` puts the first touch right after the rebooking window.)*
+- [x] **WINB-04**: Rebooking and win-back never fire to the same customer in the same cron run (no same-day double-touch), but a prior rebooking nudge never blocks a later win-back stage. *(Phase 3 — per-run `rebookedThisRun` exclusion; contiguous-not-overlapping thresholds make it belt-and-suspenders, and the exclusion is per-run so a prior nudge never blocks.)*
 
 ### Engine Integrity (ENGN)
 
@@ -77,10 +77,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | REBK-02 | Phase 2 | Complete |
 | REBK-03 | Phase 2 | Complete |
 | REBK-04 | Phase 2 | Complete |
-| WINB-01 | Phase 3 | Pending |
-| WINB-02 | Phase 3 | Pending |
-| WINB-03 | Phase 3 | Pending |
-| WINB-04 | Phase 3 | Pending |
+| WINB-01 | Phase 3 | Complete |
+| WINB-02 | Phase 3 | Complete |
+| WINB-03 | Phase 3 | Complete |
+| WINB-04 | Phase 3 | Complete |
 | ENGN-01 | Phase 2 | Complete |
 | ENGN-02 | Phase 2 | Complete |
 | ENGN-03 | Phase 2 | Complete |
@@ -93,4 +93,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-06-03*
-*Last updated: 2026-06-06 — Phase 2 COMPLETE: predictive rebooking shipped (REBK-01…04, ENGN-01…04; commit `e4ff002`). Remaining v1 work: staged win-back (WINB-01…04, Phase 3).*
+*Last updated: 2026-06-06 — Phase 3 COMPLETE: staged, cadence-aware win-back shipped (WINB-01…04). All 15 v1 requirements now met; the automation-layer milestone is feature-complete.*
