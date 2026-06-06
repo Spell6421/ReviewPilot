@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { recomputeLastAppointment } from "@/lib/appointments";
+import { parseAppointmentsCsv } from "@/lib/appointments-csv";
 import { requireCurrentBusiness } from "@/lib/current-business";
 import { prisma } from "@/lib/prisma";
 
@@ -86,6 +87,124 @@ export async function addAppointmentAction(
   revalidatePath(`/customers/${customerId}`);
   revalidatePath("/customers");
   return { successAt: Date.now() };
+}
+
+export type ImportAppointmentsFormState = {
+  error?: string;
+  imported?: number;
+  skipped?: number;
+  /** Bumps on success so the dialog can react and close itself. */
+  successAt?: number;
+};
+
+/**
+ * Bulk-import visit history from a dedicated appointments CSV (one row per visit,
+ * D-08). The client preview is advisory only — this re-parses the file on the
+ * SERVER (T-04-02) and only inserts zero-error rows. For each row it matches an
+ * existing customer by exact E.164 phone (the parser already normalized it — same
+ * key as inbound-reply matching, Pitfall 3) scoped to the current business, or
+ * auto-creates one from name+phone (D-09). Visits are deduped on
+ * customer+date+service (D-10/D-13) and reported, never silently dropped. The
+ * cache is recomputed ONCE per distinct affected customer (Pitfall 1 / Q2).
+ *
+ * Everything is scoped by `business.id` (T-04-03): the match, the auto-create, and
+ * the insert. Auth is enforced inside the action (T-04-01), not just the UI.
+ */
+export async function importAppointmentsAction(
+  _prev: ImportAppointmentsFormState,
+  formData: FormData,
+): Promise<ImportAppointmentsFormState> {
+  const { business } = await requireCurrentBusiness();
+
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) {
+    return { error: "Choose a CSV file to import." };
+  }
+
+  const parsed = parseAppointmentsCsv(await file.text());
+  if (parsed.fatal) return { error: parsed.fatal };
+
+  const valid = parsed.rows.filter((r) => r.errors.length === 0);
+  if (valid.length === 0) {
+    return { error: "No valid rows to import." };
+  }
+
+  let imported = 0;
+  let skipped = parsed.invalidCount;
+  const affectedCustomerIds = new Set<string>();
+
+  // Cache the phone → customerId lookups across rows so repeated-phone rows
+  // (the multi-visit case) don't re-query or accidentally auto-create twice.
+  const customerByPhone = new Map<string, string>();
+
+  for (const row of valid) {
+    // The parser guarantees a non-null E.164 phone for every valid row.
+    const phone = row.phone as string;
+    const date = toMidnightUtc(row.date as Date);
+
+    let customerId = customerByPhone.get(phone);
+    if (!customerId) {
+      // Exact E.164 string match scoped to the business (Pitfall 3).
+      const existing = await prisma.customer.findFirst({
+        where: { businessId: business.id, phone },
+        select: { id: true },
+      });
+      if (existing) {
+        customerId = existing.id;
+      } else {
+        // Auto-create from name+phone — both guaranteed by the parser (D-09).
+        // The new customer is owned by the current business (T-04-03).
+        const created = await prisma.customer.create({
+          data: {
+            businessId: business.id,
+            name: row.name,
+            phone,
+            email: null,
+          },
+        });
+        customerId = created.id;
+      }
+      customerByPhone.set(phone, customerId);
+    }
+
+    // D-10/D-13 dedup: same customer + date + service is a duplicate; a same-day
+    // DIFFERENT-service row is a distinct visit. Skip + count (don't drop silently).
+    const dupe = await prisma.appointment.findFirst({
+      where: {
+        customerId,
+        businessId: business.id,
+        date,
+        service: row.service,
+      },
+      select: { id: true },
+    });
+    if (dupe) {
+      skipped++;
+      continue;
+    }
+
+    await prisma.appointment.create({
+      data: {
+        businessId: business.id,
+        customerId,
+        date,
+        service: row.service,
+        source: row.source ?? "csv",
+      },
+    });
+    imported++;
+    affectedCustomerIds.add(customerId);
+  }
+
+  // Recompute the derived cache ONCE per distinct affected customer (never per
+  // row — Pitfall 1). The D-04 invariant holds across the bulk path.
+  for (const customerId of affectedCustomerIds) {
+    await recomputeLastAppointment(customerId, business.id);
+    revalidatePath(`/customers/${customerId}`);
+  }
+  revalidatePath("/customers");
+
+  return { imported, skipped, successAt: Date.now() };
 }
 
 /**
