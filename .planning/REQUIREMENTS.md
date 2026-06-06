@@ -13,7 +13,7 @@
 ### Appointment History (APPT)
 
 - [x] **APPT-01**: Customer visit history is stored as individual `Appointment` records (date, optional service, optional source) — not just a single `lastAppointmentAt`. *(Phase 1, Plan 01-01)*
-- [ ] **APPT-02**: Owner can seed/import appointment history manually and via CSV, so cadence works before integrations exist. *(Manual add/delete landed in Plan 01-02; customer create/import now seed a backing appointment too, Plan 01-03 / D-07; dedicated appointments-CSV import remains in Plan 01-04 — complete once it ships.)*
+- [x] **APPT-02**: Owner can seed/import appointment history manually and via CSV, so cadence works before integrations exist. *(Manual add/delete landed in Plan 01-02; customer create/import seed a backing appointment, Plan 01-03 / D-07; the dedicated appointments-CSV import — parser, match/auto-create (D-09), idempotent dedup (D-10/D-13), preview — shipped in Plan 01-04, completing both the manual and CSV halves.)*
 - [x] **APPT-03**: A customer's most-recent visit is derived from their `Appointment` records; existing `lastAppointmentAt`-driven behavior stays correct (migrated or derived). *(Phase 1, Plan 01-01)*
 
 ### Predictive Rebooking (REBK)
@@ -71,7 +71,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | APPT-01 | Phase 1 (01-01) | Complete |
-| APPT-02 | Phase 1 (01-02 manual / 01-03 customer-flow seed / 01-04 CSV) | Partial — manual add/delete (01-02) + customer create/import seeding (01-03 D-07) done; dedicated appointments-CSV import pending (01-04) |
+| APPT-02 | Phase 1 (01-02 manual / 01-03 customer-flow seed / 01-04 CSV) | Complete — manual add/delete (01-02), customer create/import seeding (01-03 D-07), and dedicated appointments-CSV import (01-04) all shipped |
 | APPT-03 | Phase 1 (01-01) | Complete |
 | REBK-01 | Phase 2 | Pending |
 | REBK-02 | Phase 2 | Pending |
@@ -93,4 +93,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-06-03*
-*Last updated: 2026-06-06 — APPT-02 customer create/import seeding landed (Phase 1, Plan 01-03, D-07); dedicated appointments-CSV import (01-04) completes APPT-02*
+*Last updated: 2026-06-06 — APPT-02 COMPLETE: dedicated appointments-CSV import shipped (Phase 1, Plan 01-04 — parser, phone match/auto-create D-09, idempotent dedup D-10/D-13, preview), closing both the manual and CSV halves*

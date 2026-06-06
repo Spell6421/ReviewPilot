@@ -54,7 +54,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 01-04-PLAN.md — Slice: appointments-CSV import (parser, action, preview dialog, fixture)
+- [x] 01-04-PLAN.md — Slice: appointments-CSV import (parser, action, preview dialog, fixture)
 
 ### Phase 2: Predictive Rebooking
 
@@ -92,6 +92,6 @@ Phases execute in numeric order: 1 → 2 → 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Appointment History Foundation | 3/4 | In Progress | - |
+| 1. Appointment History Foundation | 4/4 | Plans Complete | - |
 | 2. Predictive Rebooking | 0/TBD | Not started | - |
 | 3. Staged Win-Back | 0/TBD | Not started | - |
