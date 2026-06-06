@@ -33,7 +33,7 @@ const LINE_META: Record<AutomationKind, { label: string; description: string }> 
   },
   rebooking_reminder: {
     label: "Rebooking reminders",
-    description: "customers about 2–4 months since their last visit",
+    description: "customers overdue for their next visit based on their own booking history",
   },
   win_back: {
     label: "Win-backs",
