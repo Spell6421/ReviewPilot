@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import type { Customer } from "@prisma/client";
 import { MoreHorizontal, Search, Send, Trash2 } from "lucide-react";
 
@@ -114,7 +115,14 @@ export function CustomersTable({
           ) : (
             filtered.map((customer) => (
               <TableRow key={customer.id}>
-                <TableCell className="font-medium">{customer.name}</TableCell>
+                <TableCell className="font-medium">
+                  <Link
+                    href={`/customers/${customer.id}`}
+                    className="rounded-sm hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                  >
+                    {customer.name}
+                  </Link>
+                </TableCell>
                 <TableCell className="text-muted-foreground">
                   {customer.phone ?? "—"}
                 </TableCell>
