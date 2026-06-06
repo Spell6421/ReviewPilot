@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
 import { AddVisitDialog } from "@/app/(app)/customers/[id]/add-visit-dialog";
+import { ImportAppointmentsDialog } from "@/app/(app)/customers/[id]/import-appointments-dialog";
 import { VisitHistory } from "@/app/(app)/customers/[id]/visit-history";
 import { Button } from "@/components/ui/button";
 import {
@@ -66,7 +67,10 @@ export default async function CustomerDetailPage({
             <span>Last visit: {formatDate(customer.lastAppointmentAt)}</span>
           </div>
         </div>
-        <AddVisitDialog customerId={customer.id} />
+        <div className="flex flex-wrap gap-2">
+          <ImportAppointmentsDialog />
+          <AddVisitDialog customerId={customer.id} />
+        </div>
       </div>
 
       <Card>
