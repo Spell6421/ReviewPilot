@@ -37,7 +37,7 @@ const LINE_META: Record<AutomationKind, { label: string; description: string }> 
   },
   win_back: {
     label: "Win-backs",
-    description: "customers 4+ months since their last visit",
+    description: "cold customers, due for the next message in their staged win-back sequence",
   },
   missed_call_follow_up: {
     label: "Missed-call follow-ups",
